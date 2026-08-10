@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Pick a movie — Private Cinema</title>
+  <link rel="stylesheet" href="./css/style.css" />
+</head>
+<body data-page="movies">
+  <div class="app">
+
+    <header class="topbar">
+      <div class="topbar-inner">
+        <div class="brand"><span class="brand-dot"></span>PRIVATE CINEMA</div>
+        <a class="back-link" href="personal.html">← Back</a>
+      </div>
+      <div class="progress-wrap" data-progress></div>
+    </header>
+
+    <main class="page-main page-enter">
+      <div class="container">
+        <div class="form-head">
+          <span class="eyebrow">STEP 2 · TONIGHT'S PICK</span>
+          <h2 data-greeting>Choose tonight's film.</h2>
+          <p>One screen, one movie. Pick the one you're in the mood for.</p>
+          <div class="movie-toolbar">
+            <label class="movie-toolbar-label" for="showtime-datetime">Showtime</label>
+              <div class="movie-toolbar-row">
+                <div style="position:relative; width:100%;">
+                  <input class="movie-datetime" id="showtime-datetime" data-showtime-datetime required readonly placeholder="Choose date & time" />
+                  <div class="custom-calendar" data-showtime-picker hidden aria-hidden="true">
+                    <div class="calendar-inner">
+                      <div class="calendar-header">
+                        <button type="button" class="cal-prev" aria-label="Previous month">◀</button>
+                        <div class="cal-title" data-cal-title></div>
+                        <button type="button" class="cal-next" aria-label="Next month">▶</button>
+                      </div>
+                      <div class="calendar-weekdays">Su Mo Tu We Th Fr Sa</div>
+                      <div class="calendar-grid" data-cal-grid></div>
+                    </div>
+                    <div class="calendar-side">
+                      <div class="calendar-times" data-cal-times></div>
+                      <div class="calendar-actions">
+                        <button type="button" class="btn btn-ghost cal-cancel">Cancel</button>
+                        <button type="button" class="btn btn-primary cal-ok">OK</button>
+                      </div>
+                    </div>
+                  </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="movie-note-banner" role="status">
+          <strong>Movie not here?</strong>
+          <span>Contact host Uday Verma whenever it suits you — we’ll make it happen.</span>
+        </div>
+
+        <div class="movie-grid" data-movie-grid></div>
+      </div>
+    </main>
+
+    <div class="confirm-flash" data-confirm-flash>
+      <div class="confirm-flash-inner">
+        <div class="icon">🎬</div>
+        <h3 data-flash-title>Interstellar</h3>
+        <p style="margin-top:8px;">Locked in. Choosing your seat…</p>
+      </div>
+    </div>
+
+    <div class="movie-modal-overlay" data-movie-modal hidden>
+      <div class="movie-modal" data-movie-modal-panel>
+        <div class="movie-modal-glow" data-movie-modal-glow></div>
+        <div class="movie-modal-nav">
+          <button class="movie-nav-btn" data-movie-prev type="button">←</button>
+          <button class="movie-nav-btn" data-movie-next type="button">→</button>
+        </div>
+        <div class="movie-modal-body">
+          <img class="movie-modal-poster" data-movie-modal-poster alt="" />
+          <div class="movie-modal-copy">
+            <div class="movie-modal-chip" data-movie-modal-genre></div>
+            <h3 data-movie-modal-title></h3>
+            <p class="movie-modal-tagline" data-movie-modal-tagline></p>
+            <p class="movie-modal-description" data-movie-modal-description></p>
+            <img class="movie-modal-gif" data-movie-modal-gif alt="Movie motion preview" />
+            <div class="movie-modal-meta">
+              <span data-movie-modal-duration></span>
+              <span data-movie-modal-rating></span>
+            </div>
+            <div class="movie-modal-trailer">
+              <div class="movie-modal-trailer-label">Trailer</div>
+              <iframe data-movie-modal-trailer allow="autoplay; encrypted-media" allowfullscreen></iframe>
+            </div>
+            <div class="movie-modal-highlight" data-movie-modal-highlight></div>
+          </div>
+        </div>
+        <div class="movie-modal-actions">
+          <button class="btn btn-ghost" data-movie-close type="button">Keep browsing</button>
+          <button class="btn btn-primary" data-movie-confirm type="button">Continue to seats →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="./js/main.js"></script>
+</body>
+</html>

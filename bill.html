@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Your bill — Private Cinema</title>
+  <link rel="stylesheet" href="./css/style.css" />
+</head>
+<body data-page="bill">
+  <div class="app">
+
+    <header class="topbar">
+      <div class="topbar-inner">
+        <div class="brand"><span class="brand-dot"></span>PRIVATE CINEMA</div>
+        <a class="back-link" href="refreshments.html">← Back</a>
+      </div>
+      <div class="progress-wrap" data-progress></div>
+    </header>
+
+    <main class="page-main page-enter">
+      <div class="container">
+        <div class="form-head">
+          <span class="eyebrow">STEP 5 · REVIEW &amp; CONFIRM</span>
+          <h2>Here's the damage.</h2>
+          <p>Take a look before you lock it in.</p>
+        </div>
+
+        <div class="card bill-card">
+          <h3>Booking details</h3>
+          <div data-booking-details></div>
+        </div>
+
+        <div class="card bill-card">
+          <h3>Refreshments</h3>
+          <div data-refresh-details></div>
+        </div>
+
+        <div class="card bill-card">
+          <h3>Price breakdown</h3>
+          <div data-price-details></div>
+        </div>
+
+        <div class="form-actions">
+          <button class="btn btn-primary btn-lg btn-block" data-complete-btn>Complete Booking</button>
+        </div>
+      </div>
+    </main>
+
+    <!-- Surprise coupon modal -->
+    <div class="modal-overlay" data-modal-overlay>
+      <div class="coupon-modal glass" style="border-radius:28px; padding:36px 26px;">
+        <div class="coupon-wait">🎉 WAIT…</div>
+        <p class="coupon-sub">We have a little surprise for you.</p>
+
+        <div class="ticket-flip" data-ticket-flip>
+          <div class="ticket-flip-inner">
+            <div class="tf-face tf-front">🎟️</div>
+            <div class="tf-face tf-back">
+              <div class="pct">100%</div>
+              <div class="lbl">OFF</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="coupon-name" data-coupon-name>HOME CINEMA VIP</div>
+
+        <div class="price-count" data-price-count>
+          <span class="from">₹997</span>
+          <span class="to">₹997</span>
+        </div>
+
+        <button class="btn btn-primary btn-lg btn-block hidden" data-modal-continue>See My Ticket 🎬</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="./js/main.js"></script>
+</body>
+</html>

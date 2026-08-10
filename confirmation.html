@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Booking confirmed — Private Cinema</title>
+  <link rel="stylesheet" href="./css/style.css" />
+  <!-- EmailJS SDK — only needed on this page, since this is the only page that sends email -->
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+</head>
+<body data-page="confirmation">
+  <div class="app">
+
+    <header class="topbar">
+      <div class="topbar-inner">
+        <div class="brand"><span class="brand-dot"></span>PRIVATE CINEMA</div>
+      </div>
+    </header>
+
+    <main class="page-main page-enter">
+      <div class="container">
+        <div class="confirm-hero">
+          <div class="icon">🎬</div>
+          <h1>Booking Confirmed</h1>
+          <p>Your private cinema is ready, <span data-guest-name>Guest</span>.</p>
+        </div>
+
+        <div class="ticket">
+          <div class="ticket-top">
+            <div class="ticket-notch left"></div>
+            <div class="ticket-notch right"></div>
+            <div class="cinema-label">Private Cinema · Admit One</div>
+            <div class="movie-name" data-ticket-movie>Interstellar</div>
+          </div>
+          <div class="ticket-body">
+            <div class="ticket-row"><span class="k">Guest</span><span class="v" data-ticket-guest>Uday</span></div>
+            <div class="ticket-row"><span class="k">Showtime</span><span class="v" data-ticket-showtime>Sunset start</span></div>
+            <div class="ticket-row"><span class="k">Seat</span><span class="v" data-ticket-seat>Private Bed</span></div>
+            <div class="ticket-row"><span class="k">Food</span><span class="v" data-ticket-food>Popcorn + Coke</span></div>
+            <div class="ticket-total"><span class="k">Total</span><span class="v" data-ticket-total>₹0</span></div>
+          </div>
+          <div class="barcode"></div>
+          <div class="booking-id" data-ticket-id>BOOKING ID PC-000000</div>
+          <div class="ticket-sprockets">
+            <span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+          </div>
+          <div class="ticket-footer">Enjoy the show 🍿</div>
+        </div>
+
+        <p class="email-status" data-email-status>Sending your confirmation email…</p>
+
+        <div class="notification-preview-card" aria-label="Email notification preview">
+          <div class="notification-preview-head">Notification preview</div>
+          <div class="notification-preview-grid">
+            <div class="notification-card">
+              <h3>Guest notice</h3>
+              <div data-guest-notification-preview></div>
+            </div>
+            <div class="notification-card">
+              <h3>Host notice</h3>
+              <div data-host-notification-preview></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="confirm-actions">
+          <button class="btn btn-ghost btn-lg btn-block" data-back-home>Back to Home</button>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script type="module" src="./js/main.js"></script>
+</body>
+</html>

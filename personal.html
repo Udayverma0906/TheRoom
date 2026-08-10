@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Who's watching? — Private Cinema</title>
+  <link rel="stylesheet" href="./css/style.css" />
+</head>
+<body data-page="personal">
+  <div class="app">
+
+    <header class="topbar">
+      <div class="topbar-inner">
+        <div class="brand"><span class="brand-dot"></span>PRIVATE CINEMA</div>
+        <a class="back-link" href="index.html">← Home</a>
+      </div>
+      <div class="progress-wrap" data-progress></div>
+    </header>
+
+    <main class="page-main page-enter">
+      <div class="container">
+        <div class="form-head">
+          <span class="eyebrow">STEP 1 · GUEST DETAILS</span>
+          <h2>Before the show begins…</h2>
+          <p>Tell us who we're saving the seats for.</p>
+        </div>
+
+        <form id="personal-form" novalidate>
+          <div class="field">
+            <label for="guest-name">Full name</label>
+            <input type="text" id="guest-name" name="name" placeholder="e.g. Uday Sharma" autocomplete="name" />
+            <div class="field-error">Please enter your full name.</div>
+          </div>
+
+          <div class="field">
+            <label for="guest-email">Primary guest email</label>
+            <input type="email" id="guest-email" name="email" placeholder="you@example.com" autocomplete="email" />
+            <div class="field-error">Please enter a valid email address.</div>
+          </div>
+
+          <div class="field">
+            <label for="guest-extra-emails">Additional guest emails</label>
+            <input type="text" id="guest-extra-emails" name="extraEmails" placeholder="friend@example.com, another@example.com" />
+            <div class="field-hint">Separate multiple addresses with commas.</div>
+          </div>
+
+          <div class="field checkbox-field">
+            <label class="checkbox-pill" for="notify-host">
+              <input type="checkbox" id="notify-host" name="notifyHost" checked />
+              <span>Also notify the host for this booking</span>
+            </label>
+          </div>
+
+          <div class="form-actions">
+            <button type="submit" class="btn btn-primary btn-lg btn-block">Continue to Movies →</button>
+          </div>
+        </form>
+      </div>
+    </main>
+  </div>
+
+  <script type="module" src="./js/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Snack bar — Private Cinema</title>
+  <link rel="stylesheet" href="./css/style.css" />
+</head>
+<body data-page="refreshments">
+  <div class="app">
+
+    <header class="topbar">
+      <div class="topbar-inner">
+        <div class="brand"><span class="brand-dot"></span>PRIVATE CINEMA</div>
+        <a class="back-link" href="seats.html">← Back</a>
+      </div>
+      <div class="progress-wrap" data-progress></div>
+    </header>
+
+    <main class="page-main page-enter">
+      <div class="container">
+        <div class="form-head">
+          <span class="eyebrow">STEP 4 · SNACK BAR</span>
+          <h2>Load up the snack bar.</h2>
+          <p>No queue, no overpriced tub — just tap what you want.</p>
+        </div>
+
+        <div class="snack-banner">
+          <strong>Snack timing, your way</strong>
+          <span>Pick when each bite arrives — at the beginning, middle, or end of the movie.</span>
+        </div>
+        <div class="refresh-grid" data-refresh-grid></div>
+      </div>
+    </main>
+
+    <div class="sticky-cart">
+      <div class="sticky-cart-inner">
+        <div class="cart-summary">
+          <div class="count" data-cart-count>0 items</div>
+          <div class="amount" data-cart-amount>₹0</div>
+        </div>
+        <button class="btn btn-primary" data-view-order-btn>View order →</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="./js/main.js"></script>
+</body>
+</html>
