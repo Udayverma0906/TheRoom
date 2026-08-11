@@ -660,7 +660,7 @@ footer.site-footer{
 }
 
 .seat-intro{
-  margin:0 auto 16px; max-width:430px; text-align:center; font-size:0.9rem; color:var(--text-muted);
+  margin:20px 0 auto 30px; max-width:430px; text-align:center; font-size:0.9rem; color:var(--text-muted);
 }
 .seat-emoji-badge{display:inline-flex; align-items:center; justify-content:center; width:48px; height:48px; border-radius:16px; background:rgba(66,199,195,0.14); font-size:1.4rem; margin-bottom:10px;}
 .seat-hall{
