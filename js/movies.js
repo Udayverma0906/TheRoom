@@ -1,14 +1,17 @@
 // ============================================================
-// movies.js — step 2: pick a movie from the catalog.
+// movies.js — step 2: search movies via TMDB.
 // ============================================================
 
-import { movies } from "./movies-data.js";
 import { getBooking, updateBooking } from "./state.js";
 import { renderProgress, guardStep } from "./nav.js";
 import { showToast } from "./toast.js";
 
+const TMDB_API_KEY = "1d11a9b7a61aec12421b4a8d336ed94d";
+const TMDB_SEARCH_URL = "https://api.themoviedb.org/3/search/movie";
+
 let currentMovieId = "";
-let currentIndex = 0;
+let selectedMovie = null;
+let tmdbSearchResults = [];
 
 function initMoviesPage() {
   if (!guardStep(["guest"])) return;
@@ -16,10 +19,8 @@ function initMoviesPage() {
 
   const booking = getBooking();
   greetGuest(booking.guest.name);
-  currentMovieId = booking.movie.id || movies[0].id;
-  currentIndex = movies.findIndex((m) => m.id === currentMovieId);
-  renderMovieGrid(booking.movie.id);
-  wireMovieModal();
+  selectedMovie = booking.movie?.id ? booking.movie : null;
+  wireMovieSearch();
   hydrateShowtime(booking);
   initShowtimePicker();
   wireContinueButton();
@@ -289,122 +290,166 @@ function initShowtimePicker() {
   if(booking.movie?.scheduledAt){ input.value = booking.movie.scheduledAt; }
 }
 
-function renderMovieGrid(selectedId) {
-  const grid = document.querySelector("[data-movie-grid]");
-  if (!grid) return;
+function renderTMDBSearchResults(results) {
+  const resultsEl = document.querySelector("[data-movie-search-results]");
+  const feedback = document.querySelector("[data-movie-search-feedback]");
+  if (!resultsEl) return;
 
-  grid.innerHTML = movies
-    .map(
-      (m) => `
-      <div class="movie-card${m.id === selectedId ? " selected" : ""}" data-movie-id="${m.id}">
-        <div class="check">✓</div>
-        <img class="poster" src="${m.poster}" alt="${m.title} poster" loading="lazy" />
-        <div class="info">
-          <div class="title">${m.title}</div>
-          <div class="tags">
-            <span class="tag">${m.genre}</span>
-            <span class="tag">${m.duration}</span>
-            <span class="tag rating">★ ${m.rating}</span>
+  tmdbSearchResults = results;
+  if (!results || results.length === 0) {
+    resultsEl.hidden = true;
+    if (feedback) {
+      feedback.textContent = "No TMDB results found for that search.";
+      feedback.hidden = false;
+    }
+    return;
+  }
+
+  if (feedback) {
+    feedback.textContent = "Showing TMDB search results.";
+    feedback.hidden = false;
+  }
+
+  resultsEl.hidden = false;
+  resultsEl.innerHTML = results
+    .map((movie) => {
+      const poster = movie.poster_path
+        ? `https://image.tmdb.org/t/p/w500${movie.poster_path}`
+        : "https://via.placeholder.com/500x750?text=No+Image";
+      const releaseDate = movie.release_date ? ` • ${movie.release_date.slice(0, 4)}` : "";
+      const rating = movie.vote_average ? `★ ${movie.vote_average.toFixed(1)}` : "";
+      return `
+        <div class="movie-card search-result" data-tmdb-id="${movie.id}">
+          <div class="check">+</div>
+          <img class="poster" src="${poster}" alt="${movie.title} poster" loading="lazy" />
+          <div class="info">
+            <div class="title">${movie.title}</div>
+            <div class="tags">
+              <span class="tag">TMDB${releaseDate}</span>
+              <span class="tag rating">${rating}</span>
+            </div>
+            <div class="desc">${movie.overview || "No overview available."}</div>
+            <div class="select-btn">Choose this movie →</div>
           </div>
-          <div class="desc">${m.description}</div>
-          <div class="select-btn">View details →</div>
-        </div>
-      </div>`
-    )
+        </div>`;
+    })
     .join("");
 
-  grid.querySelectorAll(".movie-card").forEach((card) => {
-    card.addEventListener("click", () => openMovieModal(card.dataset.movieId));
+  resultsEl.querySelectorAll(".movie-card.search-result").forEach((card) => {
+    card.addEventListener("click", () => handleTMDBResultClick(card.dataset.tmdbId));
   });
 }
 
-function wireMovieModal() {
-  const overlay = document.querySelector("[data-movie-modal]");
-  const panel = document.querySelector("[data-movie-modal-panel]");
-  const glow = document.querySelector("[data-movie-modal-glow]");
-  const poster = document.querySelector("[data-movie-modal-poster]");
-  const title = document.querySelector("[data-movie-modal-title]");
-  const genre = document.querySelector("[data-movie-modal-genre]");
-  const tagline = document.querySelector("[data-movie-modal-tagline]");
-  const description = document.querySelector("[data-movie-modal-description]");
-  const duration = document.querySelector("[data-movie-modal-duration]");
-  const rating = document.querySelector("[data-movie-modal-rating]");
-  const trailer = document.querySelector("[data-movie-modal-trailer]");
-  const highlight = document.querySelector("[data-movie-modal-highlight]");
-  const gif = document.querySelector("[data-movie-modal-gif]");
-  const closeBtn = document.querySelector("[data-movie-close]");
-  const confirmBtn = document.querySelector("[data-movie-confirm]");
-  const prevBtn = document.querySelector("[data-movie-prev]");
-  const nextBtn = document.querySelector("[data-movie-next]");
+function debounce(fn, delay = 300) {
+  let timer;
+  return (...args) => {
+    clearTimeout(timer);
+    timer = setTimeout(() => fn(...args), delay);
+  };
+}
 
-  if (!overlay || !panel) return;
+async function fetchTMDBMovies(query) {
+  const feedback = document.querySelector("[data-movie-search-feedback]");
+  if (!TMDB_API_KEY || TMDB_API_KEY === "YOUR_TMDB_API_KEY") {
+    if (feedback) {
+      feedback.textContent = "TMDB search is not configured. Add your TMDB API key in js/movies.js.";
+      feedback.hidden = false;
+    }
+    return [];
+  }
 
-  const updateModal = (movie) => {
-    if (!movie) return;
-    currentMovieId = movie.id;
-    currentIndex = movies.findIndex((m) => m.id === movie.id);
-    poster.src = movie.poster;
-    poster.alt = `${movie.title} poster`;
-    title.textContent = movie.title;
-    genre.textContent = `${movie.genre} · ${movie.duration}`;
-    tagline.textContent = movie.tagline || "";
-    description.textContent = movie.description;
-    duration.textContent = `⏱ ${movie.duration}`;
-    rating.textContent = `⭐ ${movie.rating}`;
-    trailer.src = movie.trailer || "";
-    highlight.textContent = movie.highlight || "";
-    gif.src = movie.gif || "";
-    gif.hidden = !movie.gif;
-    glow.style.background = `radial-gradient(circle, ${movie.themeSoft || "rgba(255,255,255,0.16)"} 0%, transparent 70%)`;
-    panel.style.setProperty("--modal-accent", movie.themeColor || "#42c7c3");
-    document.documentElement.style.setProperty("--modal-accent", movie.themeColor || "#42c7c3");
-    document.documentElement.style.setProperty("--page-accent", movie.themeColor || "#42c7c3");
-    document.documentElement.style.setProperty("--page-accent-soft", movie.themeSoft || "rgba(66,199,195,0.16)");
+  try {
+    const url = new URL(TMDB_SEARCH_URL);
+    url.searchParams.set("api_key", TMDB_API_KEY);
+    url.searchParams.set("query", query);
+    url.searchParams.set("include_adult", "false");
+    const response = await fetch(url.toString());
+    if (!response.ok) throw new Error(`TMDB ${response.status}`);
+    const data = await response.json();
+    return Array.isArray(data.results) ? data.results.slice(0, 8) : [];
+  } catch (error) {
+    if (feedback) {
+      feedback.textContent = "TMDB search failed. Please check your API key and network connection.";
+      feedback.hidden = false;
+    }
+    console.warn("TMDB search error:", error);
+    return [];
+  }
+}
+
+function wireMovieSearch() {
+  const searchInput = document.querySelector("[data-movie-search]");
+  const feedback = document.querySelector("[data-movie-search-feedback]");
+  if (!searchInput) return;
+
+  const updateSearch = async () => {
+    const query = searchInput.value.trim();
+    if (!query) {
+      renderTMDBSearchResults([]);
+      if (feedback) {
+        feedback.hidden = true;
+        feedback.textContent = "";
+      }
+      return;
+    }
+
+    if (feedback) {
+      feedback.textContent = "Searching TMDB...";
+      feedback.hidden = false;
+    }
+    const results = await fetchTMDBMovies(query);
+    renderTMDBSearchResults(results);
   };
 
-  function openModal(movieId) {
-    const movie = movies.find((m) => m.id === movieId);
-    if (!movie) return;
-    updateModal(movie);
-    overlay.hidden = false;
-    requestAnimationFrame(() => overlay.classList.add("show"));
-  }
-
-  function closeModal() {
-    overlay.classList.remove("show");
-    setTimeout(() => {
-      overlay.hidden = true;
-    }, 220);
-  }
-
-  prevBtn?.addEventListener("click", () => {
-    const prevMovie = movies[(currentIndex - 1 + movies.length) % movies.length];
-    updateModal(prevMovie);
-  });
-
-  nextBtn?.addEventListener("click", () => {
-    const nextMovie = movies[(currentIndex + 1) % movies.length];
-    updateModal(nextMovie);
-  });
-
-  closeBtn?.addEventListener("click", closeModal);
-  overlay?.addEventListener("click", (event) => {
-    if (event.target === overlay) closeModal();
-  });
-  confirmBtn?.addEventListener("click", () => {
-    const movieId = currentMovieId || getBooking().movie?.id;
-    if (!movieId) return;
-    selectMovie(movieId);
-    closeModal();
-  });
-
-  window.openMovieModal = openModal;
+  const debouncedUpdate = debounce(updateSearch, 400);
+  searchInput.addEventListener("input", debouncedUpdate);
 }
 
-function openMovieModal(movieId) {
-  if (typeof window.openMovieModal === "function") {
-    window.openMovieModal(movieId);
-  }
+function handleTMDBResultClick(tmdbId) {
+  const movie = tmdbSearchResults.find((item) => String(item.id) === String(tmdbId));
+  if (!movie) return;
+  const styledMovie = {
+    id: `tmdb-${movie.id}`,
+    title: movie.title,
+    genre: movie.release_date ? movie.release_date.slice(0, 4) : "Movie",
+    duration: movie.runtime ? `${Math.floor(movie.runtime / 60)}h ${movie.runtime % 60}m` : "TBD",
+    rating: movie.vote_average ? movie.vote_average.toFixed(1) : "N/A",
+    poster: movie.poster_path ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` : "https://via.placeholder.com/500x750?text=No+Image",
+    description: movie.overview || "No description available.",
+    tagline: movie.tagline || "",
+    trailer: "",
+    highlight: "Added from TMDB search.",
+    themeColor: "#8b7cff",
+    themeSoft: "rgba(139,124,255,0.16)",
+    gif: "",
+  };
+
+  selectMovieFromSearch(styledMovie);
+}
+
+function selectMovieFromSearch(movie) {
+  currentMovieId = movie.id;
+  selectedMovie = movie;
+
+  const datetimeInput = document.querySelector("[data-showtime-datetime]");
+  const scheduledAt = datetimeInput?.value || "";
+
+  updateBooking({
+    movie: {
+      id: movie.id,
+      title: movie.title,
+      genre: movie.genre,
+      duration: movie.duration,
+      rating: movie.rating,
+      poster: movie.poster,
+      showtime: scheduledAt ? "scheduled" : "",
+      scheduledAt,
+      gif: movie.gif || "",
+      themeColor: movie.themeColor || "",
+      themeSoft: movie.themeSoft || "",
+    },
+  });
+  showConfirmFlash(movie);
 }
 
 function wireContinueButton() {
@@ -413,9 +458,10 @@ function wireContinueButton() {
 
   continueBtn.addEventListener("click", () => {
     const datetimeInput = document.querySelector("[data-showtime-datetime]");
-    const selectedMovieId = currentMovieId || getBooking().movie?.id;
+    const booking = getBooking();
+    const movie = selectedMovie || (booking.movie?.id ? booking.movie : null);
 
-    if (!selectedMovieId) {
+    if (!movie || !movie.id) {
       showToast("Please choose a movie before continuing.", "danger");
       return;
     }
@@ -436,48 +482,8 @@ function wireContinueButton() {
     }
 
     datetimeInput.classList.remove("invalid");
-    const movie = selectMovie(selectedMovieId);
-    if (movie) {
-      showConfirmFlash(movie);
-    }
+    showConfirmFlash(movie);
   });
-}
-
-function selectMovie(movieId) {
-  const movie = movies.find((m) => m.id === movieId);
-  if (!movie) return null;
-
-  currentMovieId = movie.id;
-  document.querySelectorAll(".movie-card").forEach((c) => {
-    c.classList.toggle("selected", c.dataset.movieId === movieId);
-  });
-
-  const datetimeInput = document.querySelector("[data-showtime-datetime]");
-  const scheduledAt = datetimeInput?.value || "";
-
-  updateBooking({
-    movie: {
-      id: movie.id,
-      title: movie.title,
-      genre: movie.genre,
-      duration: movie.duration,
-      rating: movie.rating,
-      poster: movie.poster,
-      showtime: scheduledAt ? "scheduled" : "",
-      scheduledAt,
-      gif: movie.gif || "",
-      themeColor: movie.themeColor || "",
-      themeSoft: movie.themeSoft || "",
-    },
-  });
-
-  return movie;
-}
-
-function handleSelect(movieId) {
-  const movie = selectMovie(movieId);
-  if (!movie) return;
-  showConfirmFlash(movie);
 }
 
 function showConfirmFlash(movie) {

@@ -2,7 +2,6 @@
 // landing.js — the cinematic entry point.
 // ============================================================
 
-import { movies } from "./movies-data.js";
 import { clearBooking } from "./state.js";
 
 const FUN_LINES = [
@@ -35,18 +34,13 @@ function renderMovieStrip() {
   const strip = document.querySelector("[data-movie-strip]");
   if (!strip) return;
 
-  strip.innerHTML = movies
-    .map(
-      (m) => `
-      <div class="mini-card">
-        <img class="mini-poster" src="${m.poster}" alt="${m.title} poster" loading="lazy" />
-        <div class="mini-body">
-          <div class="title">${m.title}</div>
-          <div class="meta">${m.genre} · ${m.duration}</div>
-        </div>
-      </div>`
-    )
-    .join("");
+  strip.innerHTML = `
+    <div class="mini-card placeholder">
+      <div class="mini-body">
+        <div class="title">Search for your movie</div>
+        <div class="meta">No local catalog is used — all movies are found via search.</div>
+      </div>
+    </div>`;
 }
 
 function startCountdown() {
