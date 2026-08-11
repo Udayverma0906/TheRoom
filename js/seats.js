@@ -26,9 +26,13 @@ function renderSeats(selectedId) {
   hall.innerHTML = SEATS.map(
     (seat) => `
     <div class="seat-unit${seat.id === selectedId ? " selected" : ""}" data-seat-id="${seat.id}">
+            <div class="screen-wrap">
+            <div class="screen"></div>
+            <div class="screen-label">Screen this way</div>
+          </div>
       <div class="seat-icon">
         <span class="beam"></span>
-        <span>�️</span>
+        <span>🛏️</span>
       </div>
       <div class="seat-name">${seat.name}</div>
       <div class="seat-sub">${seat.sub}</div>
