@@ -519,6 +519,8 @@ footer.site-footer{
 }
 .movie-datetime::placeholder{color:var(--text-dim);}
 .movie-datetime:focus{outline:none; border-color:var(--accent-amber); box-shadow:0 0 0 4px color-mix(in srgb, var(--accent-amber) 12%, transparent);}
+.movie-datetime.invalid{border-color:var(--danger); box-shadow:0 0 0 4px rgba(255,85,92,0.16);}
+.movie-continue-wrap{margin:24px 0 8px;}
 
 .movie-note-banner{
   margin:16px 0 20px; padding:12px 14px; border-radius:var(--radius-s);

@@ -5,6 +5,7 @@
 import { movies } from "./movies-data.js";
 import { getBooking, updateBooking } from "./state.js";
 import { renderProgress, guardStep } from "./nav.js";
+import { showToast } from "./toast.js";
 
 let currentMovieId = "";
 let currentIndex = 0;
@@ -21,6 +22,7 @@ function initMoviesPage() {
   wireMovieModal();
   hydrateShowtime(booking);
   initShowtimePicker();
+  wireContinueButton();
 }
 
 function greetGuest(name) {
@@ -390,7 +392,9 @@ function wireMovieModal() {
     if (event.target === overlay) closeModal();
   });
   confirmBtn?.addEventListener("click", () => {
-    handleSelect(currentMovieId);
+    const movieId = currentMovieId || getBooking().movie?.id;
+    if (!movieId) return;
+    selectMovie(movieId);
     closeModal();
   });
 
@@ -403,13 +407,53 @@ function openMovieModal(movieId) {
   }
 }
 
-function handleSelect(movieId) {
-  const movie = movies.find((m) => m.id === movieId);
-  if (!movie) return;
+function wireContinueButton() {
+  const continueBtn = document.querySelector("[data-movie-continue]");
+  if (!continueBtn) return;
 
+  continueBtn.addEventListener("click", () => {
+    const datetimeInput = document.querySelector("[data-showtime-datetime]");
+    const selectedMovieId = currentMovieId || getBooking().movie?.id;
+
+    if (!selectedMovieId) {
+      showToast("Please choose a movie before continuing.", "danger");
+      return;
+    }
+
+    if (!datetimeInput || !datetimeInput.value) {
+      datetimeInput?.classList.add("invalid");
+      datetimeInput?.focus();
+      showToast("Please choose a date and time before continuing.", "danger");
+      return;
+    }
+
+    const parsedDate = new Date(datetimeInput.value);
+    if (Number.isNaN(parsedDate.getTime())) {
+      datetimeInput?.classList.add("invalid");
+      datetimeInput?.focus();
+      showToast("Please choose a valid date and time before continuing.", "danger");
+      return;
+    }
+
+    datetimeInput.classList.remove("invalid");
+    const movie = selectMovie(selectedMovieId);
+    if (movie) {
+      showConfirmFlash(movie);
+    }
+  });
+}
+
+function selectMovie(movieId) {
+  const movie = movies.find((m) => m.id === movieId);
+  if (!movie) return null;
+
+  currentMovieId = movie.id;
   document.querySelectorAll(".movie-card").forEach((c) => {
     c.classList.toggle("selected", c.dataset.movieId === movieId);
   });
+
+  const datetimeInput = document.querySelector("[data-showtime-datetime]");
+  const scheduledAt = datetimeInput?.value || "";
 
   updateBooking({
     movie: {
@@ -419,14 +463,20 @@ function handleSelect(movieId) {
       duration: movie.duration,
       rating: movie.rating,
       poster: movie.poster,
-      showtime: document.querySelector("[data-showtime-datetime]")?.value ? 'scheduled' : '',
-      scheduledAt: document.querySelector("[data-showtime-datetime]")?.value || "",
+      showtime: scheduledAt ? "scheduled" : "",
+      scheduledAt,
       gif: movie.gif || "",
       themeColor: movie.themeColor || "",
       themeSoft: movie.themeSoft || "",
     },
   });
 
+  return movie;
+}
+
+function handleSelect(movieId) {
+  const movie = selectMovie(movieId);
+  if (!movie) return;
   showConfirmFlash(movie);
 }
 
