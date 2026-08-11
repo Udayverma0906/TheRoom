@@ -53,24 +53,37 @@ function renderTicket(booking) {
   setText("[data-ticket-id]", `BOOKING ID ${booking.bookingId} · ${booking.createdAt}`);
 }
 
-async function sendEmails(booking) {
-  const statusEl = document.querySelector("[data-email-status]");
-  if (statusEl) {
-    statusEl.className = "email-status";
-    statusEl.textContent = "Sending your confirmation email…";
+function setEmailPopup(type, message) {
+  const popupEl = document.querySelector("[data-email-status]");
+  const messageEl = document.querySelector("[data-email-status-message]");
+  const closeBtn = document.querySelector("[data-email-close]");
+
+  if (!popupEl || !messageEl) return;
+
+  popupEl.hidden = false;
+  popupEl.classList.remove("success", "error");
+  if (type) popupEl.classList.add(type);
+  messageEl.textContent = message;
+
+  if (closeBtn) {
+    closeBtn.onclick = () => {
+      popupEl.hidden = true;
+    };
   }
+}
+
+async function sendEmails(booking) {
+  setEmailPopup("", "Sending your confirmation email…");
 
   const result = await sendBookingEmails(booking);
 
-  if (!statusEl) return;
-
   if (result.customerSent) {
-    statusEl.className = "email-status success";
-    statusEl.textContent = `Your confirmation email is on its way. Please check your spam folder if it doesn’t appear in your inbox.`;
+    setEmailPopup(
+      "success",
+      "Your confirmation email is on its way. Please check your spam folder if it doesn’t appear in your inbox."
+    );
   } else {
-    statusEl.className = "email-status error";
-    statusEl.textContent =
-      "We couldn’t send the email. Please try again and check your spam folder if needed.";
+    setEmailPopup("error", "We couldn’t send the email. Please try again and check your spam folder if needed.");
   }
 }
 

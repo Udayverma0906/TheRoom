@@ -286,6 +286,7 @@ img{max-width:100%; display:block;}
 .toast.exit{animation:toastOut 0.3s var(--ease-out) forwards;}
 @keyframes toastIn{from{opacity:0; transform:translateY(14px) scale(0.97);} to{opacity:1; transform:none;}}
 @keyframes toastOut{to{opacity:0; transform:translateY(10px) scale(0.97);}}
+@keyframes emailStatusIn{from{opacity:0; transform:translate(-50%, -12px) scale(0.97);} to{opacity:1; transform:translate(-50%, 0) scale(1);}}
 
 /* ---------- Page transition ---------- */
 .page-enter{animation:pageIn 0.55s var(--ease-out);}
@@ -1017,13 +1018,36 @@ footer.site-footer{
   color:var(--text-dim); letter-spacing:0.1em; margin:10px 0 22px;
 }
 
-.email-status{
-  max-width:420px; margin:22px auto 0;
-  text-align:center; font-size:0.84rem; color:var(--text-muted);
+.email-status-popup{
+  position:fixed;
+  top:20px;
+  left:50%;
+  transform:translateX(-50%);
+  z-index:220;
+  width:min(92vw, 460px);
+  padding:14px 44px 14px 16px;
+  border:1px solid rgba(242,237,228,0.16);
+  border-left:4px solid var(--accent-amber);
+  border-radius:var(--radius-s);
+  background:rgba(28,32,39,0.92);
+  box-shadow:var(--shadow-soft);
+  color:var(--text-cream);
   line-height:1.6;
+  font-size:0.9rem;
+  animation:emailStatusIn 0.3s var(--ease-out);
 }
-.email-status.success{color:var(--success); font-weight:800;}
-.email-status.error{color:var(--danger); font-weight:800;}
+.email-status-popup[hidden]{display:none !important;}
+.email-status-popup.success{border-left-color:var(--success); color:var(--success);}
+.email-status-popup.error{border-left-color:var(--danger); color:var(--danger);}
+.email-status-popup[hidden]{display:none !important;}
+.email-status-popup.success{border-left-color:var(--success); color:var(--success);}
+.email-status-popup.error{border-left-color:var(--danger); color:var(--danger);}
+.email-status-close{
+  position:absolute; top:8px; right:8px;
+  border:0; background:transparent; color:inherit; cursor:pointer;
+  font-size:1.1rem; line-height:1; padding:2px;
+}
+.email-status-message{font-weight:600;}
 .confirm-actions{
   max-width:360px; margin:28px auto 0;
   display:flex; flex-direction:column; gap:12px;
