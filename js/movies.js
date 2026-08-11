@@ -20,6 +20,7 @@ function initMoviesPage() {
   const booking = getBooking();
   greetGuest(booking.guest.name);
   selectedMovie = booking.movie?.id ? booking.movie : null;
+
   wireMovieSearch();
   hydrateShowtime(booking);
   initShowtimePicker();
@@ -28,6 +29,7 @@ function initMoviesPage() {
 
 function greetGuest(name) {
   const el = document.querySelector("[data-greeting]");
+
   if (el && name) {
     el.textContent = `Welcome, ${name.split(" ")[0]}. Your cinema awaits.`;
   }
@@ -35,18 +37,62 @@ function greetGuest(name) {
 
 function hydrateShowtime(booking) {
   const datetime = document.querySelector("[data-showtime-datetime]");
+
   if (!datetime) return;
+
   const scheduledAt = booking.movie?.scheduledAt || "";
   datetime.value = scheduledAt;
 }
 
-/* Custom calendar / time picker for themed UX */
+/* ============================================================
+   SHOWTIME VALIDATION
+   ============================================================ */
+
+function validateShowtime() {
+  const datetimeInput = document.querySelector("[data-showtime-datetime]");
+
+  if (!datetimeInput || !datetimeInput.value) {
+    datetimeInput?.classList.add("invalid");
+    datetimeInput?.focus();
+
+    showToast(
+      "Please choose a date and time before continuing.",
+      "danger"
+    );
+
+    return false;
+  }
+
+  const parsedDate = new Date(datetimeInput.value);
+
+  if (Number.isNaN(parsedDate.getTime())) {
+    datetimeInput.classList.add("invalid");
+    datetimeInput.focus();
+
+    showToast(
+      "Please choose a valid date and time before continuing.",
+      "danger"
+    );
+
+    return false;
+  }
+
+  datetimeInput.classList.remove("invalid");
+
+  return true;
+}
+
+/* ============================================================
+   CUSTOM CALENDAR / TIME PICKER
+   ============================================================ */
+
 function initShowtimePicker() {
   const input = document.querySelector("[data-showtime-datetime]");
   const picker = document.querySelector("[data-showtime-picker]");
+
   if (!input || !picker) return;
 
-  // ensure hidden at startup (markup uses hidden attribute but CSS may override)
+  // Ensure hidden at startup
   picker.hidden = true;
 
   const grid = picker.querySelector("[data-cal-grid]");
@@ -58,381 +104,785 @@ function initShowtimePicker() {
   let view = new Date();
   view.setDate(1);
 
-  function pad(n){return n<10? '0'+n : ''+n}
-  function localIso(dt){
-    const y=dt.getFullYear(), m=pad(dt.getMonth()+1), d=pad(dt.getDate()), hh=pad(dt.getHours()), mm=pad(dt.getMinutes());
+  function pad(n) {
+    return n < 10 ? "0" + n : "" + n;
+  }
+
+  function localIso(dt) {
+    const y = dt.getFullYear();
+    const m = pad(dt.getMonth() + 1);
+    const d = pad(dt.getDate());
+    const hh = pad(dt.getHours());
+    const mm = pad(dt.getMinutes());
+
     return `${y}-${m}-${d}T${hh}:${mm}`;
   }
 
-  function isSameDay(a,b){return a.getFullYear()===b.getFullYear()&&a.getMonth()===b.getMonth()&&a.getDate()===b.getDate();}
+  function isSameDay(a, b) {
+    return (
+      a.getFullYear() === b.getFullYear() &&
+      a.getMonth() === b.getMonth() &&
+      a.getDate() === b.getDate()
+    );
+  }
 
-  function clearChildren(el){ while(el.firstChild) el.removeChild(el.firstChild); }
+  function clearChildren(el) {
+    while (el.firstChild) {
+      el.removeChild(el.firstChild);
+    }
+  }
 
   function renderCalendar() {
     clearChildren(grid);
+
     const year = view.getFullYear();
     const month = view.getMonth();
-    titleEl.textContent = view.toLocaleString(undefined,{month:'long', year:'numeric'});
+
+    titleEl.textContent = view.toLocaleString(undefined, {
+      month: "long",
+      year: "numeric",
+    });
 
     const firstDay = new Date(year, month, 1).getDay();
-    const daysInMonth = new Date(year, month+1, 0).getDate();
-    // produce empty slots then days
-    for(let i=0;i<firstDay;i++){
-      const el = document.createElement('div'); el.className='calendar-day empty'; grid.appendChild(el);
-    }
-    const today = new Date(); today.setHours(0,0,0,0);
-    const selected = input._tempDate instanceof Date ? input._tempDate : (input._selectedDate ? new Date(input._selectedDate) : null);
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
 
-    for(let d=1; d<=daysInMonth; d++){
+    // Produce empty slots then days
+    for (let i = 0; i < firstDay; i++) {
+      const el = document.createElement("div");
+      el.className = "calendar-day empty";
+      grid.appendChild(el);
+    }
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const selected =
+      input._tempDate instanceof Date
+        ? input._tempDate
+        : input._selectedDate
+          ? new Date(input._selectedDate)
+          : null;
+
+    for (let d = 1; d <= daysInMonth; d++) {
       const dt = new Date(year, month, d);
-      const el = document.createElement('button'); el.type='button'; el.className='calendar-day';
+
+      const el = document.createElement("button");
+      el.type = "button";
+      el.className = "calendar-day";
       el.textContent = d;
       el.dataset.date = dt.toISOString();
-      if(dt < today){ el.classList.add('disabled'); }
-      if(selected && isSameDay(dt, selected)) el.classList.add('selected');
-      if(!el.classList.contains('disabled')){
-        el.addEventListener('click', ()=>{
-          // set temp date (preserve existing time if present)
-          const existing = input._tempDate || (input._selectedDate ? new Date(input._selectedDate) : null);
-          const tmp = new Date(dt.getFullYear(), dt.getMonth(), dt.getDate(), existing ? existing.getHours() : 18, existing ? existing.getMinutes() : 0,0,0);
+
+      if (dt < today) {
+        el.classList.add("disabled");
+      }
+
+      if (selected && isSameDay(dt, selected)) {
+        el.classList.add("selected");
+      }
+
+      if (!el.classList.contains("disabled")) {
+        el.addEventListener("click", () => {
+          // Set temporary date
+          // Preserve existing time if present
+          const existing =
+            input._tempDate ||
+            (input._selectedDate ? new Date(input._selectedDate) : null);
+
+          const tmp = new Date(
+            dt.getFullYear(),
+            dt.getMonth(),
+            dt.getDate(),
+            existing ? existing.getHours() : 18,
+            existing ? existing.getMinutes() : 0,
+            0,
+            0
+          );
+
           input._tempDate = tmp;
+
           renderCalendar();
           renderTimes();
         });
       }
+
       grid.appendChild(el);
     }
   }
 
-  function formatTimeForInput(date){
+  function formatTimeForInput(date) {
     const hh = date.getHours();
     const mm = pad(date.getMinutes());
     const ss = pad(date.getSeconds());
-    const ampm = hh >= 12 ? 'PM' : 'AM';
+
+    const ampm = hh >= 12 ? "PM" : "AM";
     const hour12 = ((hh + 11) % 12) + 1;
-    return `${hour12}:${mm}${date.getSeconds() ? `:${ss}` : ''} ${ampm}`;
+
+    return `${hour12}:${mm}${date.getSeconds() ? `:${ss}` : ""} ${ampm}`;
   }
 
-  function parseTimeText(value){
-    const match = value.trim().match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?\s*([AaPp][Mm])$/);
-    if(!match) return null;
+  function parseTimeText(value) {
+    const match = value
+      .trim()
+      .match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?\s*([AaPp][Mm])$/);
+
+    if (!match) return null;
+
     let hour = parseInt(match[1], 10);
     const minute = parseInt(match[2], 10);
     const second = match[3] ? parseInt(match[3], 10) : 0;
     const ampm = match[4].toUpperCase();
-    if(hour < 1 || hour > 12 || minute > 59 || second > 59) return null;
-    if(ampm === 'PM' && hour !== 12) hour += 12;
-    if(ampm === 'AM' && hour === 12) hour = 0;
-    return { hour, minute, second };
+
+    if (
+      hour < 1 ||
+      hour > 12 ||
+      minute > 59 ||
+      second > 59
+    ) {
+      return null;
+    }
+
+    if (ampm === "PM" && hour !== 12) {
+      hour += 12;
+    }
+
+    if (ampm === "AM" && hour === 12) {
+      hour = 0;
+    }
+
+    return {
+      hour,
+      minute,
+      second,
+    };
   }
 
-  function renderTimes(){
+  function renderTimes() {
     clearChildren(timesEl);
-    const selectedDate = input._tempDate ? new Date(input._tempDate) : (input._selectedDate ? new Date(input._selectedDate) : null);
-    const wrapper = document.createElement('div'); wrapper.className='calendar-time-wrapper';
-    const label = document.createElement('label'); label.className='calendar-time-label'; label.htmlFor='calendar-time-input'; label.textContent='Showtime';
-    const field = document.createElement('input');
-    field.id = 'calendar-time-input';
-    field.type = 'text';
-    field.className = 'calendar-time-input';
-    field.placeholder = '07:30 PM';
-    field.autocomplete = 'off';
-    field.inputMode = 'text';
-    const hint = document.createElement('p'); hint.className='calendar-time-hint';
+
+    const selectedDate = input._tempDate
+      ? new Date(input._tempDate)
+      : input._selectedDate
+        ? new Date(input._selectedDate)
+        : null;
+
+    const wrapper = document.createElement("div");
+    wrapper.className = "calendar-time-wrapper";
+
+    const label = document.createElement("label");
+    label.className = "calendar-time-label";
+    label.htmlFor = "calendar-time-input";
+    label.textContent = "Showtime";
+
+    const field = document.createElement("input");
+    field.id = "calendar-time-input";
+    field.type = "text";
+    field.className = "calendar-time-input";
+    field.placeholder = "07:30 PM";
+    field.autocomplete = "off";
+    field.inputMode = "text";
+
+    const hint = document.createElement("p");
+    hint.className = "calendar-time-hint";
 
     wrapper.append(label, field, hint);
     timesEl.appendChild(wrapper);
 
-    if(!selectedDate){
+    if (!selectedDate) {
       field.disabled = true;
-      field.value = '';
-      hint.textContent = 'Pick a date first to enter a time.';
+      field.value = "";
+      hint.textContent = "Pick a date first to enter a time.";
       return;
     }
 
     field.disabled = false;
     field.value = formatTimeForInput(selectedDate);
-    hint.textContent = 'Enter time as HH:MM AM or HH:MM:SS PM.';
 
-    field.addEventListener('input', ()=>{
+    hint.textContent =
+      "Enter time as HH:MM AM or HH:MM:SS PM.";
+
+    field.addEventListener("input", () => {
       const parsed = parseTimeText(field.value);
-      if(!parsed){
-        field.classList.add('invalid');
-        hint.textContent = 'Use format 07:30 PM or 07:30:00 PM.';
+
+      if (!parsed) {
+        field.classList.add("invalid");
+        hint.textContent =
+          "Use format 07:30 PM or 07:30:00 PM.";
         return;
       }
-      field.classList.remove('invalid');
-      hint.textContent = 'Press OK when time is correct.';
+
+      field.classList.remove("invalid");
+
+      hint.textContent =
+        "Press OK when time is correct.";
+
       const updated = new Date(selectedDate);
-      updated.setHours(parsed.hour, parsed.minute, parsed.second, 0);
+
+      updated.setHours(
+        parsed.hour,
+        parsed.minute,
+        parsed.second,
+        0
+      );
+
       input._tempDate = updated;
     });
   }
 
-  prevBtn.addEventListener('click', ()=>{ view.setMonth(view.getMonth()-1); renderCalendar(); });
-  nextBtn.addEventListener('click', ()=>{ view.setMonth(view.getMonth()+1); renderCalendar(); });
+  prevBtn.addEventListener("click", () => {
+    view.setMonth(view.getMonth() - 1);
+    renderCalendar();
+  });
 
-  const okBtn = picker.querySelector('.cal-ok');
-  const cancelBtn = picker.querySelector('.cal-cancel');
+  nextBtn.addEventListener("click", () => {
+    view.setMonth(view.getMonth() + 1);
+    renderCalendar();
+  });
+
+  const okBtn = picker.querySelector(".cal-ok");
+  const cancelBtn = picker.querySelector(".cal-cancel");
 
   function positionPicker() {
-    // measure and position relative to input, use fixed so it stays on top during scroll
-    picker.classList.add('fixed');
-    const maxWidth = Math.min(520, window.innerWidth - 40);
-    picker.style.width = maxWidth + 'px';
+    picker.classList.add("fixed");
+
+    const maxWidth = Math.min(
+      520,
+      window.innerWidth - 40
+    );
+
+    picker.style.width = maxWidth + "px";
+
     const rect = input.getBoundingClientRect();
 
-    if(window.innerWidth <= 840){
-      picker.style.left = '12px';
-      picker.style.right = '12px';
-      picker.style.top = '12px';
-      picker.style.width = Math.min(window.innerWidth - 24, 520) + 'px';
+    if (window.innerWidth <= 840) {
+      picker.style.left = "12px";
+      picker.style.right = "12px";
+      picker.style.top = "12px";
+      picker.style.width =
+        Math.min(window.innerWidth - 24, 520) + "px";
+
       return;
     }
 
-    picker.style.left = Math.max(12, rect.left) + 'px';
-    // compute desired top below input
-    picker.style.top = (rect.bottom + 8) + 'px';
-    // ensure it fits vertically; if not, place above
+    picker.style.left =
+      Math.max(12, rect.left) + "px";
+
+    // Compute desired top below input
+    picker.style.top =
+      rect.bottom + 8 + "px";
+
+    // Ensure it fits vertically
     const ph = picker.offsetHeight || 320;
+
     let top = rect.bottom + 8;
-    if(top + ph > window.innerHeight - 12){
+
+    if (top + ph > window.innerHeight - 12) {
       top = rect.top - ph - 8;
-      if(top < 8) top = 8;
+
+      if (top < 8) {
+        top = 8;
+      }
     }
-    picker.style.top = top + 'px';
-    // clamp left inside viewport
+
+    picker.style.top = top + "px";
+
+    // Clamp left inside viewport
     const pw = picker.offsetWidth;
+
     let left = rect.left;
-    if(left + pw > window.innerWidth - 12) left = window.innerWidth - pw - 12;
-    if(left < 12) left = 12;
-    picker.style.left = left + 'px';
+
+    if (left + pw > window.innerWidth - 12) {
+      left = window.innerWidth - pw - 12;
+    }
+
+    if (left < 12) {
+      left = 12;
+    }
+
+    picker.style.left = left + "px";
   }
 
-  // open picker on input click — set temp selection state and position it
-  function setPickerVisible(show){
+  // Open picker on input click
+  function setPickerVisible(show) {
     picker.hidden = !show;
-    if(show){
-      document.body.classList.add('no-scroll-picker');
-      // initialize temp selection from existing scheduledAt or clear
+
+    if (show) {
+      document.body.classList.add(
+        "no-scroll-picker"
+      );
+
+      // Initialize temporary selection
+      // from existing scheduledAt or clear
       const booking = getBooking();
-      if(booking.movie?.scheduledAt){
+
+      if (booking.movie?.scheduledAt) {
         const v = booking.movie.scheduledAt;
         const parsed = new Date(v);
-        if(!Number.isNaN(parsed.getTime())) input._tempDate = parsed;
-        else input._tempDate = null;
+
+        if (!Number.isNaN(parsed.getTime())) {
+          input._tempDate = parsed;
+        } else {
+          input._tempDate = null;
+        }
       } else {
         input._tempDate = null;
       }
-      renderCalendar(); renderTimes();
-      requestAnimationFrame(()=> positionPicker());
+
+      renderCalendar();
+      renderTimes();
+
+      requestAnimationFrame(() => {
+        positionPicker();
+      });
     } else {
-      document.body.classList.remove('no-scroll-picker');
+      document.body.classList.remove(
+        "no-scroll-picker"
+      );
     }
   }
 
-  // NOTE: pass `picker.hidden` (not `!picker.hidden`) — picker.hidden===true
-  // means "currently closed", and that's exactly when a click should open it.
-  input.addEventListener('click', (e)=>{ setPickerVisible(picker.hidden); });
+  // picker.hidden === true means closed
+  input.addEventListener("click", () => {
+    setPickerVisible(picker.hidden);
+  });
 
-  // close when clicking outside
-  // NOTE: uses composedPath(), not picker.contains(ev.target) — a day click
-  // triggers renderCalendar(), which rebuilds the whole grid (including the
-  // button just clicked) *before* this event finishes bubbling to document.
-  // By then ev.target is a detached node, so picker.contains(ev.target) is
-  // always false — the picker was closing itself immediately after every
-  // date selection. composedPath() is captured at dispatch time, so it still
-  // correctly reports the click happened inside the picker.
-  document.addEventListener('click', (ev)=>{
-    if(!picker.hidden){
-      const path = typeof ev.composedPath === 'function' ? ev.composedPath() : [];
-      const clickedInsidePicker = path.includes(picker) || path.includes(input);
-      if(!clickedInsidePicker){ setPickerVisible(false); }
+  // Close when clicking outside
+  document.addEventListener("click", (ev) => {
+    if (!picker.hidden) {
+      const path =
+        typeof ev.composedPath === "function"
+          ? ev.composedPath()
+          : [];
+
+      const clickedInsidePicker =
+        path.includes(picker) ||
+        path.includes(input);
+
+      if (!clickedInsidePicker) {
+        setPickerVisible(false);
+      }
     }
   });
 
-  // close on escape
-  document.addEventListener('keydown', (ev)=>{
-    if(ev.key === 'Escape' && !picker.hidden){ setPickerVisible(false); }
-  });
-
-  // close on resize and reposition appropriately
-  window.addEventListener('resize', ()=>{
-    if(!picker.hidden){
-      // reposition if visible
-      try{ positionPicker(); }catch(e){ setPickerVisible(false); }
+  // Close on escape
+  document.addEventListener("keydown", (ev) => {
+    if (
+      ev.key === "Escape" &&
+      !picker.hidden
+    ) {
+      setPickerVisible(false);
     }
   });
-  // reposition on scroll so picker stays near input
-  window.addEventListener('scroll', ()=>{ if(!picker.hidden) positionPicker(); }, {passive:true});
 
-  // OK / Cancel behavior
-  okBtn?.addEventListener('click', ()=>{
-    if(!input._tempDate) return; // nothing to confirm
+  // Close on resize
+  window.addEventListener("resize", () => {
+    if (!picker.hidden) {
+      try {
+        positionPicker();
+      } catch (e) {
+        setPickerVisible(false);
+      }
+    }
+  });
+
+  // Reposition on scroll
+  window.addEventListener(
+    "scroll",
+    () => {
+      if (!picker.hidden) {
+        positionPicker();
+      }
+    },
+    { passive: true }
+  );
+
+  // ==========================================================
+  // OK / CANCEL
+  // ==========================================================
+
+  okBtn?.addEventListener("click", () => {
+    if (!input._tempDate) return;
+
     input.value = localIso(input._tempDate);
+
     const currentBooking = getBooking();
-    updateBooking({ movie: { ...currentBooking.movie, scheduledAt: input.value } });
-    // persist selected
-    input._selectedDate = input._tempDate.toISOString();
-    setPickerVisible(false);
-  });
-  cancelBtn?.addEventListener('click', ()=>{
-    // discard temp and restore display from booking
-    const booking = getBooking();
-    if(booking.movie?.scheduledAt) input.value = booking.movie.scheduledAt;
-    else input.value = '';
-    input._tempDate = null;
+
+    updateBooking({
+      movie: {
+        ...currentBooking.movie,
+        scheduledAt: input.value,
+      },
+    });
+
+    input._selectedDate =
+      input._tempDate.toISOString();
+
+    // Remove validation styling
+    input.classList.remove("invalid");
+
     setPickerVisible(false);
   });
 
-  // if there's an existing scheduledAt, show it in input
+  cancelBtn?.addEventListener("click", () => {
+    // Discard temporary selection
+    const booking = getBooking();
+
+    if (booking.movie?.scheduledAt) {
+      input.value =
+        booking.movie.scheduledAt;
+    } else {
+      input.value = "";
+    }
+
+    input._tempDate = null;
+
+    setPickerVisible(false);
+  });
+
+  // If there is an existing scheduledAt,
+  // show it in input
   const booking = getBooking();
-  if(booking.movie?.scheduledAt){ input.value = booking.movie.scheduledAt; }
+
+  if (booking.movie?.scheduledAt) {
+    input.value =
+      booking.movie.scheduledAt;
+  }
 }
 
+/* ============================================================
+   TMDB SEARCH RESULTS
+   ============================================================ */
+
 function renderTMDBSearchResults(results) {
-  const resultsEl = document.querySelector("[data-movie-search-results]");
-  const feedback = document.querySelector("[data-movie-search-feedback]");
+  const resultsEl = document.querySelector(
+    "[data-movie-search-results]"
+  );
+
+  const feedback = document.querySelector(
+    "[data-movie-search-feedback]"
+  );
+
   if (!resultsEl) return;
 
   tmdbSearchResults = results;
+
   if (!results || results.length === 0) {
     resultsEl.hidden = true;
+
     if (feedback) {
-      feedback.textContent = "No TMDB results found for that search.";
+      feedback.textContent =
+        "No TMDB results found for that search.";
+
       feedback.hidden = false;
     }
+
     return;
   }
 
   if (feedback) {
-    feedback.textContent = "Showing TMDB search results.";
+    feedback.textContent =
+      "Showing TMDB search results.";
+
     feedback.hidden = false;
   }
 
   resultsEl.hidden = false;
+
   resultsEl.innerHTML = results
     .map((movie) => {
       const poster = movie.poster_path
         ? `https://image.tmdb.org/t/p/w500${movie.poster_path}`
         : "https://via.placeholder.com/500x750?text=No+Image";
-      const releaseDate = movie.release_date ? ` • ${movie.release_date.slice(0, 4)}` : "";
-      const rating = movie.vote_average ? `★ ${movie.vote_average.toFixed(1)}` : "";
+
+      const releaseDate = movie.release_date
+        ? ` • ${movie.release_date.slice(0, 4)}`
+        : "";
+
+      const rating = movie.vote_average
+        ? `★ ${movie.vote_average.toFixed(1)}`
+        : "";
+
       return `
-        <div class="movie-card search-result" data-tmdb-id="${movie.id}">
+        <div
+          class="movie-card search-result"
+          data-tmdb-id="${movie.id}"
+        >
           <div class="check">+</div>
-          <img class="poster" src="${poster}" alt="${movie.title} poster" loading="lazy" />
+
+          <img
+            class="poster"
+            src="${poster}"
+            alt="${movie.title} poster"
+            loading="lazy"
+          />
+
           <div class="info">
-            <div class="title">${movie.title}</div>
-            <div class="tags">
-              <span class="tag">TMDB${releaseDate}</span>
-              <span class="tag rating">${rating}</span>
+            <div class="title">
+              ${movie.title}
             </div>
-            <div class="desc">${movie.overview || "No overview available."}</div>
-            <div class="select-btn">Choose this movie →</div>
+
+            <div class="tags">
+              <span class="tag">
+                TMDB${releaseDate}
+              </span>
+
+              <span class="tag rating">
+                ${rating}
+              </span>
+            </div>
+
+            <div class="desc">
+              ${movie.overview || "No overview available."}
+            </div>
+
+            <div class="select-btn">
+              Choose this movie →
+            </div>
           </div>
-        </div>`;
+        </div>
+      `;
     })
     .join("");
 
-  resultsEl.querySelectorAll(".movie-card.search-result").forEach((card) => {
-    card.addEventListener("click", () => handleTMDBResultClick(card.dataset.tmdbId));
-  });
+  resultsEl
+    .querySelectorAll(".movie-card.search-result")
+    .forEach((card) => {
+      card.addEventListener("click", () =>
+        handleTMDBResultClick(
+          card.dataset.tmdbId
+        )
+      );
+    });
 }
 
 function debounce(fn, delay = 300) {
   let timer;
+
   return (...args) => {
     clearTimeout(timer);
-    timer = setTimeout(() => fn(...args), delay);
+
+    timer = setTimeout(
+      () => fn(...args),
+      delay
+    );
   };
 }
 
+/* ============================================================
+   TMDB API
+   ============================================================ */
+
 async function fetchTMDBMovies(query) {
-  const feedback = document.querySelector("[data-movie-search-feedback]");
-  if (!TMDB_API_KEY || TMDB_API_KEY === "YOUR_TMDB_API_KEY") {
+  const feedback = document.querySelector(
+    "[data-movie-search-feedback]"
+  );
+
+  if (
+    !TMDB_API_KEY ||
+    TMDB_API_KEY === "YOUR_TMDB_API_KEY"
+  ) {
     if (feedback) {
-      feedback.textContent = "TMDB search is not configured. Add your TMDB API key in js/movies.js.";
+      feedback.textContent =
+        "TMDB search is not configured. Add your TMDB API key in js/movies.js.";
+
       feedback.hidden = false;
     }
+
     return [];
   }
 
   try {
-    const url = new URL(TMDB_SEARCH_URL);
-    url.searchParams.set("api_key", TMDB_API_KEY);
-    url.searchParams.set("query", query);
-    url.searchParams.set("include_adult", "false");
-    const response = await fetch(url.toString());
-    if (!response.ok) throw new Error(`TMDB ${response.status}`);
-    const data = await response.json();
-    return Array.isArray(data.results) ? data.results.slice(0, 8) : [];
+    const url = new URL(
+      TMDB_SEARCH_URL
+    );
+
+    url.searchParams.set(
+      "api_key",
+      TMDB_API_KEY
+    );
+
+    url.searchParams.set(
+      "query",
+      query
+    );
+
+    url.searchParams.set(
+      "include_adult",
+      "false"
+    );
+
+    const response =
+      await fetch(url.toString());
+
+    if (!response.ok) {
+      throw new Error(
+        `TMDB ${response.status}`
+      );
+    }
+
+    const data =
+      await response.json();
+
+    return Array.isArray(data.results)
+      ? data.results.slice(0, 8)
+      : [];
   } catch (error) {
     if (feedback) {
-      feedback.textContent = "TMDB search failed. Please check your API key and network connection.";
+      feedback.textContent =
+        "TMDB search failed. Please check your API key and network connection.";
+
       feedback.hidden = false;
     }
-    console.warn("TMDB search error:", error);
+
+    console.warn(
+      "TMDB search error:",
+      error
+    );
+
     return [];
   }
 }
 
+/* ============================================================
+   MOVIE SEARCH
+   ============================================================ */
+
 function wireMovieSearch() {
-  const searchInput = document.querySelector("[data-movie-search]");
-  const feedback = document.querySelector("[data-movie-search-feedback]");
+  const searchInput =
+    document.querySelector(
+      "[data-movie-search]"
+    );
+
+  const feedback =
+    document.querySelector(
+      "[data-movie-search-feedback]"
+    );
+
   if (!searchInput) return;
 
   const updateSearch = async () => {
-    const query = searchInput.value.trim();
+    const query =
+      searchInput.value.trim();
+
     if (!query) {
       renderTMDBSearchResults([]);
+
       if (feedback) {
         feedback.hidden = true;
         feedback.textContent = "";
       }
+
       return;
     }
 
     if (feedback) {
-      feedback.textContent = "Searching TMDB...";
+      feedback.textContent =
+        "Searching TMDB...";
+
       feedback.hidden = false;
     }
-    const results = await fetchTMDBMovies(query);
-    renderTMDBSearchResults(results);
+
+    const results =
+      await fetchTMDBMovies(query);
+
+    renderTMDBSearchResults(
+      results
+    );
   };
 
-  const debouncedUpdate = debounce(updateSearch, 400);
-  searchInput.addEventListener("input", debouncedUpdate);
+  const debouncedUpdate =
+    debounce(
+      updateSearch,
+      400
+    );
+
+  searchInput.addEventListener(
+    "input",
+    debouncedUpdate
+  );
 }
 
+/* ============================================================
+   MOVIE SELECTION
+   ============================================================ */
+
 function handleTMDBResultClick(tmdbId) {
-  const movie = tmdbSearchResults.find((item) => String(item.id) === String(tmdbId));
+  const movie =
+    tmdbSearchResults.find(
+      (item) =>
+        String(item.id) ===
+        String(tmdbId)
+    );
+
   if (!movie) return;
+
   const styledMovie = {
     id: `tmdb-${movie.id}`,
     title: movie.title,
-    genre: movie.release_date ? movie.release_date.slice(0, 4) : "Movie",
-    duration: movie.runtime ? `${Math.floor(movie.runtime / 60)}h ${movie.runtime % 60}m` : "TBD",
-    rating: movie.vote_average ? movie.vote_average.toFixed(1) : "N/A",
-    poster: movie.poster_path ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` : "https://via.placeholder.com/500x750?text=No+Image",
-    description: movie.overview || "No description available.",
-    tagline: movie.tagline || "",
+
+    genre: movie.release_date
+      ? movie.release_date.slice(0, 4)
+      : "Movie",
+
+    duration: movie.runtime
+      ? `${Math.floor(movie.runtime / 60)}h ${movie.runtime % 60}m`
+      : "TBD",
+
+    rating: movie.vote_average
+      ? movie.vote_average.toFixed(1)
+      : "N/A",
+
+    poster: movie.poster_path
+      ? `https://image.tmdb.org/t/p/w500${movie.poster_path}`
+      : "https://via.placeholder.com/500x750?text=No+Image",
+
+    description:
+      movie.overview ||
+      "No description available.",
+
+    tagline:
+      movie.tagline || "",
+
     trailer: "",
-    highlight: "Added from TMDB search.",
-    themeColor: "#8b7cff",
-    themeSoft: "rgba(139,124,255,0.16)",
+
+    highlight:
+      "Added from TMDB search.",
+
+    themeColor:
+      "#8b7cff",
+
+    themeSoft:
+      "rgba(139,124,255,0.16)",
+
     gif: "",
   };
 
-  selectMovieFromSearch(styledMovie);
+  selectMovieFromSearch(
+    styledMovie
+  );
 }
 
 function selectMovieFromSearch(movie) {
+  /*
+   * IMPORTANT:
+   * Validate showtime BEFORE selecting the movie.
+   *
+   * This prevents the movie-card click from
+   * bypassing the date/time validation.
+   */
+  if (!validateShowtime()) {
+    return;
+  }
+
   currentMovieId = movie.id;
   selectedMovie = movie;
 
-  const datetimeInput = document.querySelector("[data-showtime-datetime]");
-  const scheduledAt = datetimeInput?.value || "";
+  const datetimeInput =
+    document.querySelector(
+      "[data-showtime-datetime]"
+    );
+
+  const scheduledAt =
+    datetimeInput?.value || "";
 
   updateBooking({
     movie: {
@@ -442,62 +892,104 @@ function selectMovieFromSearch(movie) {
       duration: movie.duration,
       rating: movie.rating,
       poster: movie.poster,
-      showtime: scheduledAt ? "scheduled" : "",
+
+      showtime: scheduledAt
+        ? "scheduled"
+        : "",
+
       scheduledAt,
+
       gif: movie.gif || "",
-      themeColor: movie.themeColor || "",
-      themeSoft: movie.themeSoft || "",
+
+      themeColor:
+        movie.themeColor || "",
+
+      themeSoft:
+        movie.themeSoft || "",
     },
   });
+
   showConfirmFlash(movie);
 }
 
+/* ============================================================
+   CONTINUE BUTTON
+   ============================================================ */
+
 function wireContinueButton() {
-  const continueBtn = document.querySelector("[data-movie-continue]");
+  const continueBtn =
+    document.querySelector(
+      "[data-movie-continue]"
+    );
+
   if (!continueBtn) return;
 
-  continueBtn.addEventListener("click", () => {
-    const datetimeInput = document.querySelector("[data-showtime-datetime]");
-    const booking = getBooking();
-    const movie = selectedMovie || (booking.movie?.id ? booking.movie : null);
+  continueBtn.addEventListener(
+    "click",
+    () => {
+      const booking =
+        getBooking();
 
-    if (!movie || !movie.id) {
-      showToast("Please choose a movie before continuing.", "danger");
-      return;
+      const movie =
+        selectedMovie ||
+        (booking.movie?.id
+          ? booking.movie
+          : null);
+
+      // First validate movie
+      if (!movie || !movie.id) {
+        showToast(
+          "Please choose a movie before continuing.",
+          "danger"
+        );
+
+        return;
+      }
+
+      // Then validate showtime
+      if (!validateShowtime()) {
+        return;
+      }
+
+      showConfirmFlash(movie);
     }
-
-    if (!datetimeInput || !datetimeInput.value) {
-      datetimeInput?.classList.add("invalid");
-      datetimeInput?.focus();
-      showToast("Please choose a date and time before continuing.", "danger");
-      return;
-    }
-
-    const parsedDate = new Date(datetimeInput.value);
-    if (Number.isNaN(parsedDate.getTime())) {
-      datetimeInput?.classList.add("invalid");
-      datetimeInput?.focus();
-      showToast("Please choose a valid date and time before continuing.", "danger");
-      return;
-    }
-
-    datetimeInput.classList.remove("invalid");
-    showConfirmFlash(movie);
-  });
+  );
 }
 
+/* ============================================================
+   CONFIRMATION FLASH
+   ============================================================ */
+
 function showConfirmFlash(movie) {
-  const flash = document.querySelector("[data-confirm-flash]");
+  const flash =
+    document.querySelector(
+      "[data-confirm-flash]"
+    );
+
   if (!flash) {
-    window.location.href = "seats.html";
+    window.location.href =
+      "seats.html";
+
     return;
   }
-  flash.querySelector("[data-flash-title]").textContent = movie.title;
+
+  flash.querySelector(
+    "[data-flash-title]"
+  ).textContent =
+    movie.title;
+
   flash.classList.add("show");
 
   setTimeout(() => {
-    window.location.href = "seats.html";
+    window.location.href =
+      "seats.html";
   }, 1000);
 }
 
-export { initMoviesPage };
+/* ============================================================
+   EXPORT
+   ============================================================ */
+
+export {
+  initMoviesPage
+};
